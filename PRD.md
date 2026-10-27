@@ -42,7 +42,7 @@
 | R-15 | F-07은 DB에서 요청 지역의 일정을 id 오름차순으로 읽고, 공통 weather와 tasks 배열(각 일정의 judgment 포함)을 반환한다. 날씨와 판단은 요청 시 계산하며 DB에는 저장하지 않는다. 빈 DB 조회 결과는 tasks: []이다. |
 | R-16 | F-07의 하루는 한국 시간 00~23시이다. 하루 전체 비교를 위해 전날 23시 발표 예보를 고정 사용하고 발표일·시각·격자를 응답에 표시한다. 오늘 TMX 최고기온, 오늘 24시간 WSD 최댓값(m/s), POP 최댓값(%)을 사용한다. TMX나 24시간 풍속·강수확률이 누락되면 weather: null로 처리한다. 최신 발표 예보나 관측 최댓값으로 표시하지 않는다. |
 | R-17 | F-07은 GET만 지원한다. 누락·중복·잘못된 region은 400, 다른 메서드는 405, 서버 DB 설정 오류는 500, DB 조회 실패는 502이다. 기상청만 실패하면 200으로 DB 일정·partial: true·warnings를 반환한다. 실내는 영향 없음, 나머지는 날씨 확인 전이다. |
-| R-18 | KMA_KEY는 Vercel 서버 환경변수에서만 읽는다. 원본 기상청 요청 URL·응답 오류·키를 응답이나 로그에 넣지 않는다. 서버 DB 조회에는 SUPABASE_URL과 공개용 SUPABASE_PUBLIC_KEY만 사용한다. KMA_PROVIDER는 apihub(기본) 또는 datagokr이며 키 발급처에 맞게 설정한다. |
+| R-18 | KMA_KEY는 Vercel 서버 환경변수에서만 읽는다. 원본 기상청 요청 URL·응답 오류·키를 응답이나 로그에 넣지 않는다. 서버 DB 조회에는 SUPABASE_URL과 공개용 SUPABASE_PUBLIC_KEY만 사용한다. KMA_PROVIDER는 datagokr(기본, 공공데이터포털) 또는 apihub이다. 기본 End Point는 https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0이며 getVilageFcst를 호출한다. 기존 환경변수가 apihub이면 datagokr로 바꾸거나 제거해야 기본값이 적용된다. |
 
 ## 5. 범위 밖
 - 실제 이름·연락처·기관 내부 자료와 실제 일정 사용.

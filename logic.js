@@ -67,7 +67,7 @@ function getKmaDates(now = new Date()) {
 }
 
 // 키를 포함한 반환 URL은 서버 내부에서만 사용한다. 출력·로그에 넣지 않는다.
-function makeKmaUrl(region, baseDate, key, provider = 'apihub') {
+function makeKmaUrl(region, baseDate, key, provider = 'datagokr') {
   const grid = getKmaGrid(region);
   const endpoints = {
     apihub: 'https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0/getVilageFcst',

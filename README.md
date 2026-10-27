@@ -51,11 +51,13 @@ Vercel 프로젝트의 환경변수에 다음을 등록하고 적용 대상 환�
 | 환경변수 | 값 |
 |---|---|
 | `KMA_KEY` | 해당 서비스 활용 신청이 승인된 기상청 인증키. 서버에서만 사용 |
-| `KMA_PROVIDER` | 선택 사항. API허브 키이면 `apihub`(기본), 공공데이터포털 키이면 `datagokr` |
+| `KMA_PROVIDER` | 선택 사항. 공공데이터포털 키이면 `datagokr`(기본), API허브 키이면 `apihub` |
 | `SUPABASE_URL` | 현재 config.js에 사용 중인 Supabase 프로젝트 URL |
 | `SUPABASE_PUBLIC_KEY` | 같은 프로젝트의 publishable 또는 기존 anon 공개용 키. service_role·secret 키 금지 |
 
 API허브와 공공데이터포털은 인증키 발급처가 다릅니다. 발급처를 확인하고 설정하세요. 인증키는 요청 주소창·채팅·파일에 넣지 않습니다.
+
+기본 End Point는 `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0`이며, 서버에서 `/getVilageFcst`와 `serviceKey` 인증 방식을 사용합니다. `KMA_KEY`에 공공데이터포털 인증키를 등록하고 재배포하세요. 기존 `KMA_PROVIDER=apihub` 설정이 남아 있으면 `datagokr`로 변경하거나 제거해야 합니다. 노출된 인증키는 재발급 후 Vercel에 등록하세요.
 
 응답 형태 예시 (아래 일정과 수치는 설명용 가상 데이터입니다):
 

@@ -41,7 +41,7 @@ async function readTasks(region, url, key) {
 async function readWeather(region, dates) {
   const key = process.env.KMA_KEY?.trim();
   if (!key) return { weather: null, code: 'KMA_KEY_MISSING' };
-  const provider = process.env.KMA_PROVIDER || 'apihub';
+  const provider = process.env.KMA_PROVIDER || 'datagokr';
   if (!['apihub', 'datagokr'].includes(provider)) {
     return { weather: null, code: 'KMA_PROVIDER_INVALID' };
   }
