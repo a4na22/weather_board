@@ -4,7 +4,44 @@ let tasks = [];
 let loading = true;
 let saving = false;
 let taskDatabase = null;
-let weatherByRegion = {};   // 03 단원에서 지역별 날씨를 넣음
+let weatherByRegion = {};
+const weatherStatus = {};
+const testWind = new URLSearchParams(window.location.search).get('test') === 'wind';
+
+function renderWeatherStatus() {
+  const box = document.getElementById('weatherBox');
+  box.textContent = (testWind ? '[강풍 시험: 받은 풍속을 12m/s로 변경] ' : '')
+    + Object.keys(WEATHER_REGIONS).map(region => region + ': ' + weatherStatus[region]).join(' · ')
+    + ' · 예보 출처: ';
+  const source = document.createElement('a');
+  source.href = 'https://open-meteo.com/';
+  source.textContent = 'Open-Meteo';
+  box.appendChild(source);
+}
+
+async function loadWeather() {
+  const today = document.getElementById('todayDate').dateTime;
+  const regions = Object.keys(WEATHER_REGIONS);
+  for (const region of regions) weatherStatus[region] = '확인 중';
+  renderWeatherStatus();
+  await Promise.all(regions.map(async region => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(makeWeatherUrl(region), { signal: controller.signal });
+      if (!response.ok) throw new Error('날씨 요청 실패');
+      weatherByRegion[region] = parseWeatherResponse(await response.json(), today, testWind);
+      weatherStatus[region] = '확인 완료';
+    } catch (error) {
+      delete weatherByRegion[region];
+      weatherStatus[region] = '불러오기 실패 (새로고침해 주세요)';
+    } finally {
+      clearTimeout(timeout);
+      renderWeatherStatus();
+      renderTasks();
+    }
+  }));
+}
 
 function connectDatabase() {
   if (typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_PUBLIC_KEY === 'undefined'
@@ -143,3 +180,4 @@ document.getElementById('taskForm').addEventListener('submit', addTask);
 document.getElementById('saveMarkdown').addEventListener('click', saveJudgmentMarkdown);
 renderToday();
 loadTasks();
+loadWeather();
