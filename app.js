@@ -6,6 +6,17 @@ let tasks = [];
 let loading = true;
 let weatherByRegion = {};   // 03 단원에서 지역별 날씨를 넣음
 
+function renderToday() {
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const date = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const value = `${date.year}-${date.month}-${date.day}`;
+  const element = document.getElementById('todayDate');
+  element.textContent = value;
+  element.dateTime = value;
+}
+
 async function loadTasks() {
   const button = document.getElementById('taskForm').querySelector('button');
   const msg = document.getElementById('msgBox');
@@ -81,4 +92,5 @@ function addTask(e) {
 }
 
 document.getElementById('taskForm').addEventListener('submit', addTask);
+renderToday();
 loadTasks();
