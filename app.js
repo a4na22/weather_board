@@ -15,6 +15,7 @@ function renderToday() {
   const element = document.getElementById('todayDate');
   element.textContent = value;
   element.dateTime = value;
+  return value;
 }
 
 async function loadTasks() {
@@ -42,6 +43,25 @@ async function loadTasks() {
   renderTasks();
   loading = false;
   button.disabled = false;
+  document.getElementById('saveMarkdown').disabled = false;
+}
+
+function saveJudgmentMarkdown() {
+  if (loading) return;
+  const date = renderToday();
+  const headers = Array.from(document.querySelectorAll('thead th'), cell => cell.textContent);
+  const rows = Array.from(document.getElementById('taskList').rows,
+    row => Array.from(row.cells, cell => cell.textContent));
+  const markdown = makeJudgmentMarkdown(headers, rows, date);
+  const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `현장일정_판단_${date}.md`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function weatherText(w) {
@@ -92,5 +112,6 @@ function addTask(e) {
 }
 
 document.getElementById('taskForm').addEventListener('submit', addTask);
+document.getElementById('saveMarkdown').addEventListener('click', saveJudgmentMarkdown);
 renderToday();
 loadTasks();
