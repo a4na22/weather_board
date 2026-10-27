@@ -40,6 +40,87 @@ function parseWeatherResponse(response, today, testWind = false) {
   return { tempMax, windMax: testWind ? 12 : windMax, rainProb };
 }
 
+// 기상청 공식 Lambert conformal 격자 정의로 기존 대표 좌표를 변환한다.
+function getKmaGrid(region) {
+  if (!Object.hasOwn(WEATHER_REGIONS, region)) throw new Error('지원하지 않는 지역');
+  const { latitude, longitude } = WEATHER_REGIONS[region];
+  const radians = Math.PI / 180;
+  const lat1 = 30 * radians;
+  const lat2 = 60 * radians;
+  const sn = Math.log(Math.cos(lat1) / Math.cos(lat2))
+    / Math.log(Math.tan(Math.PI / 4 + lat2 / 2) / Math.tan(Math.PI / 4 + lat1 / 2));
+  const sf = Math.pow(Math.tan(Math.PI / 4 + lat1 / 2), sn) * Math.cos(lat1) / sn;
+  const radius = 6371.00877 / 5;
+  const ro = radius * sf / Math.pow(Math.tan(Math.PI / 4 + 38 * radians / 2), sn);
+  const ra = radius * sf / Math.pow(Math.tan(Math.PI / 4 + latitude * radians / 2), sn);
+  const theta = (longitude - 126) * radians * sn;
+  return {
+    nx: Math.floor(ra * Math.sin(theta) + 43 + 0.5),
+    ny: Math.floor(ro - ra * Math.cos(theta) + 136 + 0.5),
+  };
+}
+
+function getKmaDates(now = new Date()) {
+  const koreanDate = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const yesterday = new Date(Date.parse(koreanDate + 'T00:00:00Z') - 86400000);
+  return { date: koreanDate, baseDate: yesterday.toISOString().slice(0, 10).replace(/-/g, ''), baseTime: '2300' };
+}
+
+// 키를 포함한 반환 URL은 서버 내부에서만 사용한다. 출력·로그에 넣지 않는다.
+function makeKmaUrl(region, baseDate, key, provider = 'apihub') {
+  const grid = getKmaGrid(region);
+  const endpoints = {
+    apihub: 'https://apihub.kma.go.kr/api/typ02/openApi/VilageFcstInfoService_2.0/getVilageFcst',
+    datagokr: 'https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst',
+  };
+  if (!Object.hasOwn(endpoints, provider)) throw new Error('지원하지 않는 기상청 발급처');
+  const url = new URL(endpoints[provider]);
+  // 포털의 Encoding 키를 등록한 경우 이중 인코딩을 피한다.
+  const normalizedKey = provider === 'datagokr' && /%[0-9a-f]{2}/i.test(key)
+    ? decodeURIComponent(key) : key;
+  url.search = new URLSearchParams({
+    pageNo: '1', numOfRows: '1000', dataType: 'JSON',
+    base_date: baseDate, base_time: '2300', nx: grid.nx, ny: grid.ny,
+    [provider === 'apihub' ? 'authKey' : 'serviceKey']: normalizedKey,
+  }).toString();
+  return url.toString();
+}
+
+function parseKmaResponse(payload, date) {
+  const response = payload?.response;
+  const items = response?.body?.items?.item;
+  if (response?.header?.resultCode !== '00' || !Array.isArray(items)) {
+    throw new Error('기상청 예보를 확인할 수 없습니다.');
+  }
+  const day = date.replace(/-/g, '');
+  const values = { TMX: new Map(), WSD: new Map(), POP: new Map() };
+  for (const item of items) {
+    if (item.fcstDate !== day || !Object.hasOwn(values, item.category)) continue;
+    const raw = item.fcstValue;
+    if ((typeof raw !== 'string' && typeof raw !== 'number') || String(raw).trim() === '') {
+      throw new Error('예보 값 누락');
+    }
+    const value = Number(raw);
+    const validTime = /^(?:[01][0-9]|2[0-3])00$/.test(item.fcstTime);
+    const validValue = Number.isFinite(value) && (item.category === 'TMX'
+      ? value > -100 && value < 70
+      : value >= 0 && value <= (item.category === 'POP' ? 100 : 200));
+    if (!validTime || !validValue) throw new Error('예보 값 오류');
+    const previous = values[item.category].get(item.fcstTime);
+    if (previous !== undefined && previous !== value) throw new Error('중복 예보 값 오류');
+    values[item.category].set(item.fcstTime, value);
+  }
+  // 일부 시간만 받은 데이터를 하루 최대치로 잘못 표시하지 않는다.
+  if (!values.TMX.size || values.WSD.size !== 24 || values.POP.size !== 24) {
+    throw new Error('오늘 하루 예보가 완전하지 않습니다.');
+  }
+  return {
+    tempMax: Math.max(...values.TMX.values()),
+    windMax: Math.max(...values.WSD.values()),
+    rainProb: Math.max(...values.POP.values()),
+  };
+}
+
 // 일정 구분과 날씨로 판단 (w가 없으면 '날씨 확인 전')
 function judge(kind, w) {
   if (kind === '실내') return { level: 'ok', text: '영향 없음' };
@@ -75,4 +156,5 @@ function makeJudgmentMarkdown(headers, rows, date) {
 
 if (typeof module !== 'undefined') module.exports = {
   RULES, WEATHER_REGIONS, makeWeatherUrl, parseWeatherResponse, judge, makeJudgmentMarkdown,
+  getKmaGrid, getKmaDates, makeKmaUrl, parseKmaResponse,
 };

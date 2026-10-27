@@ -8,14 +8,15 @@
 - PRD.md에 없는 기능은 먼저 제안하고 사용자 승인을 받은 뒤 구현한다.
 
 ## 기술과 파일
-- HTML + CSS + 순수 JavaScript만 사용한다. 프레임워크·빌드 도구·별도 서버 코드는 추가하지 않는다. 일정 저장은 Supabase를 사용한다.
+- HTML + CSS + 순수 JavaScript만 사용한다. 프레임워크·빌드 도구는 추가하지 않는다. 서버 코드는 F-07용 Vercel Node.js 함수만 허용한다. 일정 저장은 Supabase를 사용한다.
 - 외부 스크립트는 supabase-js 하나만 사용한다.
 - 하나의 프로젝트 폴더에서 관리하며 index.html을 더블클릭해 연다. Supabase 조회·저장과 CDN 스크립트 로딩에는 인터넷이 필요하다.
 - index.html: 화면 구조.
 - style.css: 디자인.
 - logic.js: 판단 규칙, 날씨 API 주소 생성·응답 해석, Markdown 문자열 생성을 담당한다. 화면 조작·통신 호출을 넣지 않는다.
 - app.js: Supabase 조회·추가, 날씨 API 호출, 목록 표시·저장 등 화면 동작.
-- config.js: Supabase 주소·공개용 키 두 줄만 둔다.
+- config.js: 브라우저용 Supabase 주소·공개용 키 두 줄만 둔다.
+- api/kma.js: Vercel에서 지역별 DB 일정·기상청 날씨·판단을 JSON으로 반환한다. 서버에서는 추가 라이브러리 없이 fetch를 사용한다.
 - setup.sql: 사용자가 Supabase SQL Editor에서 실행할 표·제약·권한·초기 가상 데이터.
 - data/tasks.json: 이전 단계의 참고 자료. 실행 시 읽거나 자동으로 DB에 옮기지 않는다.
 - PRD.md: 요구사항과 완료 기준. README.md: 실행·확인 안내.
@@ -28,10 +29,11 @@
 5. 커밋·push는 사용자가 요청한 범위에서 수행한다.
 
 ## 보안과 데이터
-- 일정·담당자는 가상 데이터만 사용한다. 실제 이름·연락처·기관 내부 자료를 넣지 않는다. 날씨는 키 없는 Open-Meteo 공개 API의 예보를 사용한다.
+- 일정·담당자는 가상 데이터만 사용한다. 실제 이름·연락처·기관 내부 자료를 넣지 않는다. 화면 날씨는 Open-Meteo 예보, F-07 서버 API 날씨는 기상청 단기예보를 사용한다.
 - 모든 일정 조회·추가는 Supabase의 public.wx_tasks를 사용한다. JSON·localStorage를 일정 저장소로 사용하지 않는다.
 - 지역·구분·빈값 규칙은 DB 제약으로도 막고, RLS로 공개 조회·추가만 허용한다. 수정·삭제는 허용하지 않는다.
 - 브라우저 연결에는 공개용 publishable 키 또는 기존 anon 키만 사용한다. service_role·secret 키와 DB 비밀번호는 사용하지 않는다.
 - 공개용 키는 브라우저에 노출되는 값이며 접근 제어는 DB 권한과 RLS가 담당한다. 가상 일정만 DB에 저장하며 날씨·시험값은 DB에 저장하지 않는다.
 - 사용자가 입력한 글자는 textContent로 표시한다.
 - 비밀 키·비밀번호·인증 토큰을 코드·문서·채팅·GitHub에 넣지 않는다.
+- KMA_KEY는 Vercel 서버 환경변수로만 사용한다. 키가 포함된 요청 URL·원본 오류를 응답이나 로그에 넣지 않는다. 서버 DB 연결은 SUPABASE_URL·공개용 SUPABASE_PUBLIC_KEY 환경변수만 사용하며 service_role은 사용하지 않는다.
